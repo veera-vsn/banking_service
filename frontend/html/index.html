@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acme Bank</title>
+<style>
+  :root { --bg:#f4f6fa; --card:#fff; --text:#1c2333; --muted:#6b7487; --accent:#1f5eff; --err:#c62828; --line:#e3e7ef; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#10141c; --card:#1a2030; --text:#e8ecf5; --muted:#8e98ae; --accent:#6c92ff; --err:#ff8a80; --line:#2a3246; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; padding:16px;
+         background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .card { width:100%; max-width:380px; background:var(--card); border:1px solid var(--line);
+          border-radius:14px; padding:28px; }
+  h1 { margin:0 0 4px; font-size:22px; }
+  .sub { margin:0 0 22px; color:var(--muted); font-size:14px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:14px 0 6px; }
+  input { width:100%; padding:10px 12px; font:inherit; color:inherit; background:transparent;
+          border:1px solid var(--line); border-radius:8px; }
+  input:focus { outline:2px solid var(--accent); outline-offset:1px; }
+  button { width:100%; margin-top:22px; padding:11px; font:inherit; font-weight:600; color:#fff;
+           background:var(--accent); border:0; border-radius:8px; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--muted); border:1px solid var(--line); margin-top:14px; }
+  button:disabled { opacity:.6; cursor:wait; }
+  .err { margin-top:14px; color:var(--err); font-size:14px; min-height:20px; }
+  .balance { margin:18px 0 4px; font-size:34px; font-weight:700; letter-spacing:-.5px; }
+  .row { display:flex; justify-content:space-between; padding:8px 0; border-top:1px solid var(--line); font-size:14px; }
+  .row span:first-child { color:var(--muted); }
+  code { font-size:12px; }
+  .hint { margin-top:18px; font-size:12px; color:var(--muted); }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main class="card">
+
+  <section id="loginView">
+    <h1>Acme Bank</h1>
+    <p class="sub">Sign in to see your account</p>
+    <form id="loginForm">
+      <label for="username">Username</label>
+      <input id="username" autocomplete="username" required autofocus>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button id="loginBtn" type="submit">Sign in</button>
+      <div id="loginErr" class="err" role="alert"></div>
+    </form>
+    <p class="hint">Demo user: nani / nani123</p>
+  </section>
+
+  <section id="accountView" hidden>
+    <h1 id="welcome"></h1>
+    <p class="sub">Account <span id="acct"></span></p>
+    <div class="sub" style="margin:0">Available balance</div>
+    <div class="balance" id="balance"></div>
+    <div class="row"><span>Login handled by</span><code id="authHost"></code></div>
+    <div class="row"><span>Balance served by</span><code id="bankHost"></code></div>
+    <div id="acctErr" class="err" role="alert"></div>
+    <button id="logoutBtn" class="ghost" type="button">Sign out</button>
+    <p class="hint">The two container IDs above come from two different services.</p>
+  </section>
+
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  $("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    $("loginErr").textContent = "";
+    $("loginBtn").disabled = true;
+    const user = $("username").value.trim();
+    try {
+      // 1) authenticate against the auth service (through nginx)
+      const r = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ username: user, password: $("password").value })
+      });
+      if (r.status === 401) throw new Error("Wrong username or password");
+      if (!r.ok) throw new Error("Auth service error (" + r.status + ")");
+      const auth = await r.json();
+
+      // 2) fetch the balance from the bank service (through nginx)
+      const b = await fetch("/api/bank/balance?user=" + encodeURIComponent(user));
+      if (!b.ok) throw new Error("Bank service error (" + b.status + ")");
+      const bank = await b.json();
+
+      // textContent (not innerHTML) so data from the server can never inject HTML
+      $("welcome").textContent = "Welcome, " + auth.name;
+      $("acct").textContent = bank.account;
+      $("balance").textContent = Number(bank.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      $("authHost").textContent = auth.served_by;
+      $("bankHost").textContent = bank.served_by;
+      $("loginView").hidden = true;
+      $("accountView").hidden = false;
+    } catch (err) {
+      $("loginErr").textContent = err.message === "Failed to fetch" ? "Cannot reach the server" : err.message;
+    } finally {
+      $("loginBtn").disabled = false;
+      $("password").value = "";
+    }
+  });
+
+  $("logoutBtn").addEventListener("click", () => {
+    $("accountView").hidden = true;
+    $("loginView").hidden = false;
+    $("username").focus();
+  });
+</script>
+</body>
+</html>
