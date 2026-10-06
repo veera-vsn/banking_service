@@ -3,7 +3,6 @@ package com.acme.auth;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.sql.*;
 
 // POST /login  (form fields: username, password)
@@ -20,14 +19,13 @@ public class LoginServlet extends HttpServlet {
             resp.getWriter().println("{\"error\":\"username and password required\"}");
             return;
         }
-        String sql = "SELECT full_name FROM users WHERE username = ? AND password = ?";
+        String sql = "SELECT password, full_name FROM users WHERE username = ?";
         try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, user);
-            ps.setString(2, pass);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    resp.getWriter().println("{\"login\":\"success\",\"name\":\"" + rs.getString(1)
-                            + "\",\"served_by\":\"" + InetAddress.getLocalHost().getHostName() + "\"}");
+                if (rs.next() && Passwords.verify(pass, rs.getString(1))) {
+                    resp.getWriter().println("{\"login\":\"success\",\"name\":\"" + Util.escape(rs.getString(2))
+                            + "\",\"served_by\":\"" + Util.escape(Util.host()) + "\"}");
                 } else {
                     resp.setStatus(401);
                     resp.getWriter().println("{\"login\":\"failed\"}");
@@ -35,7 +33,7 @@ public class LoginServlet extends HttpServlet {
             }
         } catch (Exception e) {
             resp.setStatus(500);
-            resp.getWriter().println("{\"error\":\"" + e.getClass().getSimpleName() + ": " + e.getMessage().replace("\"", "'") + "\"}");
+            resp.getWriter().println("{\"error\":\"" + Util.escape(e.getClass().getSimpleName() + ": " + e.getMessage()) + "\"}");
         }
     }
 }

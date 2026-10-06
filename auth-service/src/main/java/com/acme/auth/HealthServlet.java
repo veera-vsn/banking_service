@@ -11,11 +11,13 @@ public class HealthServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json");
+        String host = Util.escape(Util.host());
         try (Connection c = Db.get()) {
-            resp.getWriter().println("{\"service\":\"auth\",\"status\":\"UP\",\"db\":\"UP\"}");
+            resp.getWriter().println("{\"service\":\"auth\",\"status\":\"UP\",\"db\":\"UP\",\"served_by\":\"" + host + "\"}");
         } catch (Exception e) {
+            System.err.println("HEALTH: database check failed: " + e);   // shows up in 'docker logs'
             resp.setStatus(503);
-            resp.getWriter().println("{\"service\":\"auth\",\"status\":\"DOWN\",\"db\":\"" + e.getClass().getSimpleName() + "\"}");
+            resp.getWriter().println("{\"service\":\"auth\",\"status\":\"UP\",\"db\":\"DOWN\",\"served_by\":\"" + host + "\"}");
         }
     }
 }

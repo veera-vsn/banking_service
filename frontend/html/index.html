@@ -5,48 +5,105 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Acme Bank</title>
 <style>
-  :root { --bg:#f4f6fa; --card:#fff; --text:#1c2333; --muted:#6b7487; --accent:#1f5eff; --err:#c62828; --line:#e3e7ef; }
+  :root { --bg:#f3f5f9; --card:#fff; --text:#18202f; --muted:#667085; --accent:#1f5eff; --accent-text:#fff;
+          --ok:#15803d; --warn:#b45309; --bad:#c62828; --line:#e1e5ee; --soft:#f7f9fc; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#10141c; --card:#1a2030; --text:#e8ecf5; --muted:#8e98ae; --accent:#6c92ff; --err:#ff8a80; --line:#2a3246; }
+    :root { --bg:#0e1219; --card:#171d29; --text:#e8ecf5; --muted:#939db3; --accent:#6c92ff; --accent-text:#0e1219;
+            --ok:#4ade80; --warn:#fbbf24; --bad:#ff8a80; --line:#283043; --soft:#1c2331; }
   }
-  * { box-sizing: border-box; }
-  body { margin:0; min-height:100vh; display:grid; place-items:center; padding:16px;
-         background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  .card { width:100%; max-width:380px; background:var(--card); border:1px solid var(--line);
-          border-radius:14px; padding:28px; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+         font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  header { display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; justify-content:space-between;
+           padding:14px 20px; background:var(--card); border-bottom:1px solid var(--line); }
+  .brand { font-weight:700; font-size:18px; letter-spacing:-.2px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { display:inline-flex; align-items:center; gap:7px; padding:4px 11px; font-size:13px;
+          border:1px solid var(--line); border-radius:999px; background:var(--soft); }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--muted); }
+  .chip[data-state="up"] .dot { background:var(--ok); }
+  .chip[data-state="degraded"] .dot { background:var(--warn); }
+  .chip[data-state="down"] .dot { background:var(--bad); }
+  .chip b { font-weight:600; }
+  .chip span.state { color:var(--muted); }
+  main { display:grid; place-items:start center; padding:28px 16px 90px; }
+  .card { width:100%; max-width:420px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:26px; }
   h1 { margin:0 0 4px; font-size:22px; }
-  .sub { margin:0 0 22px; color:var(--muted); font-size:14px; }
+  .sub { margin:0 0 18px; color:var(--muted); font-size:14px; }
+  .tabs { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; margin-bottom:20px;
+          background:var(--soft); border:1px solid var(--line); border-radius:10px; }
+  .tabs button { margin:0; padding:8px; background:transparent; color:var(--muted); font-weight:600; border-radius:7px; }
+  .tabs button[aria-selected="true"] { background:var(--card); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,.12); }
   label { display:block; font-size:13px; color:var(--muted); margin:14px 0 6px; }
   input { width:100%; padding:10px 12px; font:inherit; color:inherit; background:transparent;
           border:1px solid var(--line); border-radius:8px; }
   input:focus { outline:2px solid var(--accent); outline-offset:1px; }
-  button { width:100%; margin-top:22px; padding:11px; font:inherit; font-weight:600; color:#fff;
+  button { width:100%; margin-top:20px; padding:11px; font:inherit; font-weight:600; color:var(--accent-text);
            background:var(--accent); border:0; border-radius:8px; cursor:pointer; }
-  button.ghost { background:transparent; color:var(--muted); border:1px solid var(--line); margin-top:14px; }
+  button.ghost { background:transparent; color:var(--muted); border:1px solid var(--line); margin-top:12px; }
   button:disabled { opacity:.6; cursor:wait; }
-  .err { margin-top:14px; color:var(--err); font-size:14px; min-height:20px; }
-  .balance { margin:18px 0 4px; font-size:34px; font-weight:700; letter-spacing:-.5px; }
-  .row { display:flex; justify-content:space-between; padding:8px 0; border-top:1px solid var(--line); font-size:14px; }
+  .msg { margin-top:14px; font-size:14px; min-height:20px; }
+  .msg.err { color:var(--bad); } .msg.ok { color:var(--ok); }
+  .hint { margin-top:16px; font-size:12px; color:var(--muted); }
+  .balance { margin:6px 0 2px; font-size:36px; font-weight:700; letter-spacing:-.6px; }
+  .row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-top:1px solid var(--line); font-size:14px; }
   .row span:first-child { color:var(--muted); }
   code { font-size:12px; }
-  .hint { margin-top:18px; font-size:12px; color:var(--muted); }
+  h2 { margin:22px 0 0; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
   [hidden] { display:none !important; }
+
+  /* notifications */
+  #toasts { position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:8px; width:min(340px, calc(100vw - 32px)); z-index:10; }
+  .toast { background:var(--card); border:1px solid var(--line); border-left:4px solid var(--ok); border-radius:10px;
+           padding:10px 14px; font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.18); animation:in .18s ease-out; }
+  .toast.err { border-left-color:var(--bad); } .toast.warn { border-left-color:var(--warn); }
+  .toast .who { font-weight:700; } .toast .host { color:var(--muted); font-family:ui-monospace,monospace; font-size:12px; }
+  @keyframes in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce) { .toast { animation:none; } }
 </style>
 </head>
 <body>
-<main class="card">
 
-  <section id="loginView">
-    <h1>Acme Bank</h1>
-    <p class="sub">Sign in to see your account</p>
+<header>
+  <div class="brand">Acme Bank</div>
+  <div class="chips" id="chips" aria-label="Service status">
+    <div class="chip" data-svc="frontend" data-state="up"><span class="dot"></span><b>frontend</b><span class="state">up</span></div>
+    <div class="chip" data-svc="auth" data-state="unknown"><span class="dot"></span><b>auth</b><span class="state">checking</span></div>
+    <div class="chip" data-svc="bank" data-state="unknown"><span class="dot"></span><b>bank</b><span class="state">checking</span></div>
+    <div class="chip" data-svc="db" data-state="unknown"><span class="dot"></span><b>database</b><span class="state">checking</span></div>
+  </div>
+</header>
+
+<main>
+<div class="card">
+
+  <section id="guestView">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabLogin" aria-selected="true">Sign in</button>
+      <button type="button" role="tab" id="tabRegister" aria-selected="false">Create account</button>
+    </div>
+
     <form id="loginForm">
-      <label for="username">Username</label>
-      <input id="username" autocomplete="username" required autofocus>
-      <label for="password">Password</label>
-      <input id="password" type="password" autocomplete="current-password" required>
-      <button id="loginBtn" type="submit">Sign in</button>
-      <div id="loginErr" class="err" role="alert"></div>
+      <label for="lUser">Username</label>
+      <input id="lUser" autocomplete="username" required>
+      <label for="lPass">Password</label>
+      <input id="lPass" type="password" autocomplete="current-password" required>
+      <button id="lBtn" type="submit">Sign in</button>
     </form>
+
+    <form id="registerForm" hidden>
+      <label for="rName">Full name</label>
+      <input id="rName" autocomplete="name" required maxlength="100">
+      <label for="rEmail">Email</label>
+      <input id="rEmail" type="email" autocomplete="email" required maxlength="100">
+      <label for="rUser">Username</label>
+      <input id="rUser" autocomplete="username" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]{3,30}" title="3-30 letters, digits or _">
+      <label for="rPass">Password (6+ characters)</label>
+      <input id="rPass" type="password" autocomplete="new-password" required minlength="6" maxlength="100">
+      <button id="rBtn" type="submit">Create account</button>
+    </form>
+
+    <div id="guestMsg" class="msg" role="status"></div>
     <p class="hint">Demo user: nani / nani123</p>
   </section>
 
@@ -55,59 +112,164 @@
     <p class="sub">Account <span id="acct"></span></p>
     <div class="sub" style="margin:0">Available balance</div>
     <div class="balance" id="balance"></div>
-    <div class="row"><span>Login handled by</span><code id="authHost"></code></div>
-    <div class="row"><span>Balance served by</span><code id="bankHost"></code></div>
-    <div id="acctErr" class="err" role="alert"></div>
+    <div id="acctMsg" class="msg err" role="alert"></div>
+
+    <h2>Services used in this session</h2>
+    <div class="row"><span>auth (sign-in)</span><code id="authHost">-</code></div>
+    <div class="row"><span>bank (balance)</span><code id="bankHost">-</code></div>
+
+    <button id="refreshBtn" class="ghost" type="button">Refresh balance</button>
     <button id="logoutBtn" class="ghost" type="button">Sign out</button>
-    <p class="hint">The two container IDs above come from two different services.</p>
   </section>
 
+</div>
 </main>
+
+<div id="toasts" aria-live="polite"></div>
+
 <script>
   const $ = (id) => document.getElementById(id);
+  let currentUser = null;
+
+  /* ---------- notifications: which service did what ---------- */
+  function toast(service, host, text, kind) {
+    const t = document.createElement("div");
+    t.className = "toast" + (kind ? " " + kind : "");
+    const who = document.createElement("span"); who.className = "who"; who.textContent = service + "-service";
+    t.append(who);
+    if (host) { const h = document.createElement("span"); h.className = "host"; h.textContent = "  " + host; t.append(h); }
+    t.append(document.createElement("br"), document.createTextNode(text));   // text nodes: server data can never inject HTML
+    $("toasts").append(t);
+    setTimeout(() => t.remove(), 5000);
+  }
+
+  /* ---------- one place that talks to the backend through nginx ---------- */
+  async function call(svc, path, opts) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 5000);
+    try {
+      const r = await fetch("/api/" + svc + path, Object.assign({ signal: ctl.signal }, opts));
+      let data = null;
+      try { data = await r.json(); } catch (e) { /* nginx error pages are not JSON */ }
+      return { status: r.status, data };
+    } catch (e) {
+      return { status: 0, data: null };       // network error or timeout
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  const form = (obj) => ({ method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(obj) });
+  const unreachable = (res) => res.status === 0 || res.status === 502 || res.status === 504 || (res.status === 503 && !res.data);
+
+  function failToast(svc, res, doing) {
+    if (unreachable(res)) toast(svc, "", doing + ": service unreachable (HTTP " + (res.status || "no response") + ")", "err");
+    else toast(svc, res.data && res.data.served_by, doing + ": " + ((res.data && res.data.error) || "HTTP " + res.status), "err");
+  }
+
+  /* ---------- status chips, refreshed every 10 seconds ---------- */
+  const lastState = {};
+  function setChip(name, state, label, title) {
+    const c = document.querySelector('.chip[data-svc="' + name + '"]');
+    c.dataset.state = state;
+    c.querySelector(".state").textContent = label;
+    c.title = title || "";
+    if (lastState[name] && lastState[name] !== state && (state === "down" || state === "degraded" || lastState[name] === "down" || lastState[name] === "degraded")) {
+      const word = state === "up" ? "is back UP" : state === "degraded" ? "is running but its database is DOWN" : "is DOWN";
+      toast(name === "db" ? "database" : name, "", (name === "db" ? "database " : "service ") + word, state === "up" ? "" : "err");
+    }
+    lastState[name] = state;
+  }
+
+  async function checkHealth() {
+    const results = await Promise.all(["auth", "bank"].map((s) => call(s, "/health")));
+    let dbUp = false, anyAnswered = false;
+    ["auth", "bank"].forEach((svc, i) => {
+      const r = results[i];
+      if (r.status === 200 && r.data) { anyAnswered = true; dbUp = dbUp || r.data.db === "UP"; setChip(svc, "up", "up", "container " + r.data.served_by); }
+      else if (r.status === 503 && r.data && r.data.status === "UP") { anyAnswered = true; setChip(svc, "degraded", "no database", "container " + r.data.served_by); }
+      else setChip(svc, "down", "down", "HTTP " + (r.status || "no response"));
+    });
+    if (!anyAnswered) setChip("db", "unknown", "unknown");
+    else setChip("db", dbUp ? "up" : "down", dbUp ? "up" : "down");
+  }
+  checkHealth();
+  setInterval(checkHealth, 10000);
+
+  /* ---------- tabs ---------- */
+  function showTab(register) {
+    $("loginForm").hidden = register; $("registerForm").hidden = !register;
+    $("tabLogin").setAttribute("aria-selected", String(!register));
+    $("tabRegister").setAttribute("aria-selected", String(register));
+    $("guestMsg").textContent = "";
+  }
+  $("tabLogin").onclick = () => showTab(false);
+  $("tabRegister").onclick = () => showTab(true);
+
+  function say(text, kind) { const m = $("guestMsg"); m.textContent = text; m.className = "msg " + (kind || ""); }
+
+  /* ---------- create account: auth stores the user, bank opens the account ---------- */
+  $("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    $("rBtn").disabled = true; say("");
+    const username = $("rUser").value.trim();
+    try {
+      const reg = await call("auth", "/register", form({
+        fullName: $("rName").value, email: $("rEmail").value, username, password: $("rPass").value }));
+      if (reg.status !== 201) { failToast("auth", reg, "registration failed"); return say(unreachable(reg) ? "Auth service is not reachable" : (reg.data && reg.data.error) || "Registration failed", "err"); }
+      toast("auth", reg.data.served_by, "user '" + username + "' saved in the database");
+
+      const acc = await call("bank", "/open", form({ user: username }));
+      if (acc.status !== 201 && acc.status !== 200) { failToast("bank", acc, "could not open account"); return say("Your user was created, but the bank service could not open an account. Try signing in later.", "err"); }
+      toast("bank", acc.data.served_by, "account " + acc.data.account + " opened");
+
+      $("registerForm").reset();
+      showTab(false);
+      $("lUser").value = username;
+      say("Account created. Sign in with your new password.", "ok");
+      $("lPass").focus();
+    } finally { $("rBtn").disabled = false; $("rPass").value = ""; }
+  });
+
+  /* ---------- sign in ---------- */
+  async function loadBalance() {
+    $("acctMsg").textContent = "";
+    const b = await call("bank", "/balance?user=" + encodeURIComponent(currentUser));
+    if (b.status === 200) {
+      $("acct").textContent = b.data.account;
+      $("balance").textContent = Number(b.data.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      $("bankHost").textContent = b.data.served_by;
+      toast("bank", b.data.served_by, "balance loaded");
+    } else {
+      $("acct").textContent = "-"; $("balance").textContent = "-"; $("bankHost").textContent = "unavailable";
+      $("acctMsg").textContent = unreachable(b) ? "Bank service is not reachable. You are still signed in." : (b.data && b.data.error) || "Could not load balance";
+      failToast("bank", b, "balance");
+    }
+  }
 
   $("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    $("loginErr").textContent = "";
-    $("loginBtn").disabled = true;
-    const user = $("username").value.trim();
+    $("lBtn").disabled = true; say("");
+    const username = $("lUser").value.trim();
     try {
-      // 1) authenticate against the auth service (through nginx)
-      const r = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ username: user, password: $("password").value })
-      });
-      if (r.status === 401) throw new Error("Wrong username or password");
-      if (!r.ok) throw new Error("Auth service error (" + r.status + ")");
-      const auth = await r.json();
+      const r = await call("auth", "/login", form({ username, password: $("lPass").value }));
+      if (r.status === 401) { toast("auth", "", "sign-in rejected: wrong username or password", "warn"); return say("Wrong username or password", "err"); }
+      if (r.status !== 200) { failToast("auth", r, "sign-in"); return say(unreachable(r) ? "Auth service is not reachable" : "Sign-in failed", "err"); }
+      toast("auth", r.data.served_by, "signed in as " + username);
 
-      // 2) fetch the balance from the bank service (through nginx)
-      const b = await fetch("/api/bank/balance?user=" + encodeURIComponent(user));
-      if (!b.ok) throw new Error("Bank service error (" + b.status + ")");
-      const bank = await b.json();
-
-      // textContent (not innerHTML) so data from the server can never inject HTML
-      $("welcome").textContent = "Welcome, " + auth.name;
-      $("acct").textContent = bank.account;
-      $("balance").textContent = Number(bank.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      $("authHost").textContent = auth.served_by;
-      $("bankHost").textContent = bank.served_by;
-      $("loginView").hidden = true;
-      $("accountView").hidden = false;
-    } catch (err) {
-      $("loginErr").textContent = err.message === "Failed to fetch" ? "Cannot reach the server" : err.message;
-    } finally {
-      $("loginBtn").disabled = false;
-      $("password").value = "";
-    }
+      currentUser = username;
+      $("welcome").textContent = "Welcome, " + r.data.name;
+      $("authHost").textContent = r.data.served_by;
+      $("guestView").hidden = true; $("accountView").hidden = false;
+      await loadBalance();
+    } finally { $("lBtn").disabled = false; $("lPass").value = ""; }
   });
 
-  $("logoutBtn").addEventListener("click", () => {
-    $("accountView").hidden = true;
-    $("loginView").hidden = false;
-    $("username").focus();
-  });
+  $("refreshBtn").onclick = loadBalance;
+  $("logoutBtn").onclick = () => {
+    currentUser = null;
+    $("accountView").hidden = true; $("guestView").hidden = false;
+    say(""); $("lUser").focus();
+  };
 </script>
 </body>
 </html>

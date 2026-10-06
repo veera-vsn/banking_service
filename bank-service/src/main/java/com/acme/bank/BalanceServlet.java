@@ -3,7 +3,6 @@ package com.acme.bank;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.sql.*;
 
 // GET /balance?user=nani
@@ -23,9 +22,9 @@ public class BalanceServlet extends HttpServlet {
             ps.setString(1, user);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    resp.getWriter().println("{\"user\":\"" + user + "\",\"account\":\"" + rs.getString(1)
+                    resp.getWriter().println("{\"user\":\"" + Util.escape(user) + "\",\"account\":\"" + Util.escape(rs.getString(1))
                             + "\",\"balance\":" + rs.getBigDecimal(2)
-                            + ",\"served_by\":\"" + InetAddress.getLocalHost().getHostName() + "\"}");
+                            + ",\"served_by\":\"" + Util.escape(Util.host()) + "\"}");
                 } else {
                     resp.setStatus(404);
                     resp.getWriter().println("{\"error\":\"no account\"}");
@@ -33,7 +32,7 @@ public class BalanceServlet extends HttpServlet {
             }
         } catch (Exception e) {
             resp.setStatus(500);
-            resp.getWriter().println("{\"error\":\"" + e.getClass().getSimpleName() + ": " + e.getMessage().replace("\"", "'") + "\"}");
+            resp.getWriter().println("{\"error\":\"" + Util.escape(e.getClass().getSimpleName() + ": " + e.getMessage()) + "\"}");
         }
     }
 }
