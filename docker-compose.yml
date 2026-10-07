@@ -1,72 +1,51 @@
-name: bankapp
-
 services:
-
   mysql:
-    image: mysql:8.4
-    restart: unless-stopped
+    image: bankapp/database:1.0.0
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: rootpass123
       MYSQL_DATABASE: bankdb
-      MYSQL_USER: ${DB_USER}            # app user with rights on bankdb only (not root)
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: bankapp
+      MYSQL_PASSWORD: bankpass123
     volumes:
-      - mysql-data:/var/lib/mysql                                   # data survives container removal
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro       # runs ONLY on an empty data volume
-    networks: [bank-net]
-    healthcheck:
-      # TCP ping on 127.0.0.1 only succeeds on the real server, not the temporary init server
-      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h 127.0.0.1 -uroot --silent"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 20s
+      - mysql-data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - mysql_net
 
   auth:
-    build: ./auth-service
     image: bankapp/auth:1.0.0
-    restart: unless-stopped
-    environment:
-      DB_HOST: mysql                    # the service name = DNS name on the network
-      DB_PORT: "3306"
-      DB_NAME: bankdb
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-    depends_on:
-      mysql:
-        condition: service_healthy      # wait until MySQL is really ready
-    networks: [bank-net]                # no ports published: only nginx talks to it
-
-  bank:
-    build: ./bank-service
-    image: bankapp/bank:1.0.0
-    restart: unless-stopped
     environment:
       DB_HOST: mysql
-      DB_PORT: "3306"
       DB_NAME: bankdb
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks: [bank-net]
+      DB_USER: bankapp
+      DB_PASSWORD: bankpass123
+    networks:
+      - mysql_net
+      - frontend_net
+
+  bank:
+    image: bankapp/bank:1.0.0
+    environment:
+      DB_HOST: mysql
+      DB_NAME: bankdb
+      DB_USER: bankapp
+      DB_PASSWORD: bankpass123
+    networks:
+      - mysql_net
+      - frontend_net
 
   frontend:
-    build: ./frontend
     image: bankapp/frontend:1.0.0
-    restart: unless-stopped
     ports:
-      - "8090:80"                       # the only published port
-    depends_on:
-      auth:
-        condition: service_healthy
-      bank:
-        condition: service_healthy
-    networks: [bank-net]
-
-networks:
-  bank-net:
+      - "80:80"
+    networks:
+      - frontend_net
 
 volumes:
   mysql-data:
+
+networks:
+  mysql_net:
+    driver: overlay
+  frontend_net:
+    driver: overlay
