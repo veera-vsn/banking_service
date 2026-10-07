@@ -10,7 +10,8 @@ services:
       - mysql-data:/var/lib/mysql
     networks:
       - mysql_net
-    replicates: 3
+    deploy:
+      replicas: 3
 
   auth:
     image: bankapp/auth:1.0.0
