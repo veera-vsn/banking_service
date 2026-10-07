@@ -10,6 +10,7 @@ services:
       - mysql-data:/var/lib/mysql
     networks:
       - mysql_net
+    replicates: 3
 
   auth:
     image: bankapp/auth:1.0.0
@@ -22,6 +23,8 @@ services:
       - mysql_net
       - frontend_net
     depends_on: [mysql]
+    deploy:
+      replicas: 3
 
   bank:
     image: bankapp/bank:1.0.0
@@ -34,6 +37,8 @@ services:
       - mysql_net
       - frontend_net
     depends_on: [mysql]
+    deploy:
+      replicas: 3
 
   frontend:
     image: bankapp/frontend:1.0.0
@@ -42,6 +47,9 @@ services:
     networks:
       - frontend_net
     depends_on: [auth, bank]
+    deploy:
+      replicas: 3
+    
 
 volumes:
   mysql-data:
