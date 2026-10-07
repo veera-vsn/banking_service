@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: bankapp/database:1.0.0
+    image: nani8790/database:1.0.0
     environment:
       MYSQL_ROOT_PASSWORD: rootpass123
       MYSQL_DATABASE: bankdb
@@ -10,13 +10,14 @@ services:
       - mysql-data:/var/lib/mysql
     networks:
       - mysql_net
-      - auth_net
-      - bank_net
     deploy:
-      replicas: 3
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
   auth:
-    image: bankapp/auth:1.0.0
+    image: nani8790/auth:1.0.0
     environment:
       DB_HOST: mysql
       DB_NAME: bankdb
@@ -25,14 +26,12 @@ services:
     networks:
       - mysql_net
       - frontend_net
-      - bank_net
-      - auth_net
     depends_on: [mysql]
     deploy:
       replicas: 3
 
   bank:
-    image: bankapp/bank:1.0.0
+    image: nani8790/bank:1.0.0
     environment:
       DB_HOST: mysql
       DB_NAME: bankdb
@@ -41,24 +40,19 @@ services:
     networks:
       - mysql_net
       - frontend_net
-      - auth_net
-      - bank_net
     depends_on: [mysql]
     deploy:
       replicas: 3
 
   frontend:
-    image: bankapp/frontend:1.0.0
+    image: nani8790/frontend:1.0.0
     ports:
       - "80:80"
     networks:
       - frontend_net
-      - bank_net
-      - auth_net
     depends_on: [auth, bank]
     deploy:
       replicas: 3
-    
 
 volumes:
   mysql-data:
@@ -67,8 +61,4 @@ networks:
   mysql_net:
     driver: overlay
   frontend_net:
-    driver: overlay
-  auth_net:
-    driver: overlay
-  bank_net:
     driver: overlay
