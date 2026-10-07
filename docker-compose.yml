@@ -8,7 +8,6 @@ services:
       MYSQL_PASSWORD: bankpass123
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - mysql_net
 
