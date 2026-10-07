@@ -10,6 +10,8 @@ services:
       - mysql-data:/var/lib/mysql
     networks:
       - mysql_net
+      - auth_net
+      - bank_net
     deploy:
       replicas: 3
 
@@ -23,6 +25,8 @@ services:
     networks:
       - mysql_net
       - frontend_net
+      - bank_net
+      - auth_net
     depends_on: [mysql]
     deploy:
       replicas: 3
@@ -37,6 +41,8 @@ services:
     networks:
       - mysql_net
       - frontend_net
+      - auth_net
+      - bank_net
     depends_on: [mysql]
     deploy:
       replicas: 3
@@ -47,6 +53,8 @@ services:
       - "80:80"
     networks:
       - frontend_net
+      - bank_net
+      - auth_net
     depends_on: [auth, bank]
     deploy:
       replicas: 3
@@ -59,4 +67,8 @@ networks:
   mysql_net:
     driver: overlay
   frontend_net:
+    driver: overlay
+  auth_net:
+    driver: overlay
+  bank_net:
     driver: overlay
