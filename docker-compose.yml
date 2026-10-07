@@ -21,6 +21,7 @@ services:
     networks:
       - mysql_net
       - frontend_net
+    depends_on: [mysql]
 
   bank:
     image: bankapp/bank:1.0.0
@@ -32,6 +33,7 @@ services:
     networks:
       - mysql_net
       - frontend_net
+    depends_on: [mysql]
 
   frontend:
     image: bankapp/frontend:1.0.0
@@ -39,6 +41,7 @@ services:
       - "80:80"
     networks:
       - frontend_net
+    depends_on: [auth, bank]
 
 volumes:
   mysql-data:
